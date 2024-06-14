@@ -671,11 +671,13 @@ prof:
 	$(MAKE) CPPFLAGS='$(CPPFLAGS) -pg' tournament
 
 profgen:
-	$(MAKE) CPPFLAGS='$(CPPFLAGS) -fprofile-generate -lgcov' LDFLAGS='$(LDFLAGS) -fprofile-generate -lgcov'
+	$(MAKE) CPPFLAGS='$(CPPFLAGS) -fprofile-generate' LDFLAGS='$(LDFLAGS) -fprofile-generate'
 
 profuse:
-	$(MAKE) CPPFLAGS='$(CPPFLAGS) $(LTOFLAGS) -fprofile-use -lgcov' LDFLAGS='$(LDFLAGS) -fprofile-use -lgcov $(LTOFLAGS)'
-
+	@echo "Merging profile data..."
+	@latest_profraw=$(shell ls -t *.profraw | head -n 1) && \
+	llvm-profdata merge -output=default.profdata $$latest_profraw
+	$(MAKE) CPPFLAGS='$(CPPFLAGS) $(LTOFLAGS) -fprofile-use' LDFLAGS='$(LDFLAGS) -fprofile-use $(LTOFLAGS)'
 pgo:
 	$(MAKE) profgen
 	@./$(TARGET) EvalDir ../build/eval , bench , quit
