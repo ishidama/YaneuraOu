@@ -183,12 +183,25 @@ namespace Eval {
             _mm_store_si128(&as_m128i, other.as_m128i);
             return *this;
         }
+#elif defined(USE_NEON)
+    ScoreKeyValue() = default;
+    ScoreKeyValue(const ScoreKeyValue & other) {
+        static_assert(sizeof(ScoreKeyValue) == sizeof(uint64x2_t),
+            "sizeof(ScoreKeyValue) should be equal to sizeof(uint64x2_t)");
+        as_uint64x2 = vld1q_u64(reinterpret_cast<const uint64_t*>(&other.as_uint64x2));
+    }
+    ScoreKeyValue& operator=(const ScoreKeyValue & other) {
+        as_uint64x2 = vld1q_u64(reinterpret_cast<const uint64_t*>(&other.as_uint64x2));
+        return *this;
+    }
 #endif
 
         // evaluate hashでatomicに操作できる必要があるのでそのための操作子
         void encode() {
 #if defined(USE_SSE2)
             // ScoreKeyValue は atomic にコピーされるので key が合っていればデータも合っている。
+#elif defined(USE_NEON)
+        // NEONを使う場合もatomicにコピーされるので key が合っていればデータも合っている。
 #else
             key ^= score;
 #endif
@@ -203,6 +216,8 @@ namespace Eval {
             };
 #if defined(USE_SSE2)
             __m128i as_m128i;
+#elif defined(USE_NEON)
+        uint64x2_t as_uint64x2;
 #endif
         };
     };
