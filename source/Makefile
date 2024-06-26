@@ -166,6 +166,7 @@ endif
 
 # clang用にCPPFLAGSなどを変更
 ifneq (,$(findstring clang++,$(COMPILER)))
+
 	# stdlib
 	# CPPFLAGS += -stdlib=libstdc++
 
@@ -182,6 +183,16 @@ ifneq (,$(findstring clang++,$(COMPILER)))
 	# 最初の実行なら初期化するスレッドセーフなコードを生成するためのもの。
 	# → 本当に消してしまっても大丈夫か？
 	WCPPFLAGS += -fno-threadsafe-statics
+
+	# note : clang++で-flto指定時に、LDFLAGSに -fuse-ld=lld を指定しないと
+	#      MSYS2、Ubuntu 24.04のclang-18でのlinkに失敗する。
+	#   ⇨ このオプションはそれ以前のclangでもつけて問題ないのでclangならば必ずつけるようにする。
+	#   ⇨ gccでコンパイルする時にこのオプションをつけるとエラーになるので、gccの時はつけてはいけない。
+	# note : macOSでは、デフォルトではclangのlinkerではなくld64を用いるので、この指定をするとエラーになる。(いまのところ)
+	#   ⇨ よってTARGET_CPUにAPPLEの文字が入っている場合は、これを付与してはならない。
+	ifeq (,$(findstring APPLE,$(TARGET_CPU)))
+		LDFLAGS       += -fuse-ld=lld
+	endif
 
 else
 	ifneq (,$(findstring g++,$(COMPILER)))
@@ -234,13 +245,6 @@ endif
 # CPPFLAGSとLDFLAGSの両方で-fltoを指定する必要がある。
 # cf. https://gcc.gnu.org/onlinedocs/gcc-6.3.0/gcc/Optimize-Options.html#Optimize-Options
 LTOFLAGS = -flto
-
-# MSYS2 clang++ で -flto 指定時にリンクを行えない問題の回避
-ifneq (,$(findstring clang++,$(COMPILER)))
-	ifeq ($(OS),Windows_NT)
-		LDFLAGS += -fuse-ld=lld
-	endif
-endif
 
 # wstringを使うためにこのシンボル定義が必要。
 CPPFLAGS  += -DUNICODE
