@@ -15,6 +15,10 @@
 # YANEURAOU_ENGINE_NNUE_HALFKP_1024X2_8_32 : NNUE型評価関数(halfkp_1024x2-8-32)
 # YANEURAOU_ENGINE_NNUE_HALFKP_1024X2_8_64 : NNUE型評価関数(halfkp_1024x2-8-64)
 # YANEURAOU_ENGINE_NNUE_HALFKP_VM_256X2_32_32 : NNUE型評価関数(halfkp_vm_256x2-32-32)
+# // ⇨ 上記以外のアーキテクチャのNNUE評価関数用のやねうら王をビルドしたい時は、
+# //   やねうら王のビルド手順 - やねうら王 Wiki
+# //   https://github.com/yaneurao/YaneuraOu/wiki/%E3%82%84%E3%81%AD%E3%81%86%E3%82%89%E7%8E%8B%E3%81%AE%E3%83%93%E3%83%AB%E3%83%89%E6%89%8B%E9%A0%86
+# // の「NNUEの任意アーキテクチャのビルドについて」をご覧ください。
 # YANEURAOU_ENGINE_KPPT          : KPPT型評価関数
 # YANEURAOU_ENGINE_KPP_KKPT      : KPP_KKPT型評価関数
 # YANEURAOU_ENGINE_MATERIAL      : 駒得のみの評価関数(複数変種あり。MATERIAL_LEVELで選択できる)
@@ -98,6 +102,9 @@ DEBUG = ON
 COMPILER = clang++
 #COMPILER = em++
 
+# Python
+# ※ NNUEの未知なarchitectureの時にarchitecture headerを動的に生成するのに用いる。
+PYTHON = python
 
 # エンジンの表示名 (engine displayname)
 # ("usi"コマンドに対して出力される)
@@ -473,6 +480,11 @@ ifneq (,$(findstring YANEURAOU_ENGINE_NNUE,$(YANEURAOU_EDITION)))
 		else ifeq ($(YANEURAOU_EDITION),YANEURAOU_ENGINE_NNUE_HALFKP_VM_256X2_32_32)
 			CPPFLAGS += -DEVAL_NNUE_HALFKP_VM_256X2_32_32
 
+		else
+			# 知らないNNUEのarchitectureなので、architecture headerを動的に生成する。
+			ARCH_HEADER_FILE = \"architectures/$(subst YANEURAOU_ENGINE_NNUE_,,$(YANEURAOU_EDITION)).h\"
+			CPPFLAGS += -DNNUE_ARCHITECTURE_HEADER=$(ARCH_HEADER_FILE)
+			ARCH_GEN_SCRIPT = $(PYTHON) eval/nnue/architectures/nnue_arch_gen.py $(YANEURAOU_EDITION) eval/nnue/architectures
 		endif
 	endif
 
@@ -658,16 +670,22 @@ $(OBJDIR)/%.o: %.mm
 
 # ビルドターゲット
 
+# Pythonスクリプトを実行する共通のターゲット
+run_python_script:
+ifneq ($(ARCH_GEN_SCRIPT),)
+	$(ARCH_GEN_SCRIPT)
+endif
+
 # 通常使用。
-normal:
+normal: run_python_script
 	$(MAKE) CPPFLAGS='$(CPPFLAGS) $(LTOFLAGS)' LDFLAGS='$(LDFLAGS) $(LTOFLAGS)' $(TARGET)
 
 # 学習用。openmp , openblasなどを有効にする。
-evallearn:
+evallearn: run_python_script
 	$(MAKE) CPPFLAGS='$(CPPFLAGS) $(LTOFLAGS) $(OPENMP) $(BLAS_CPPFLAGS) -DEVAL_LEARN' LDFLAGS='$(LDFLAGS) $(OPENMP_LDFLAGS) $(BLAS_LDFLAGS) $(LTOFLAGS)' $(TARGET)
 
 # トーナメント用
-tournament:
+tournament: run_python_script
 	$(MAKE) CPPFLAGS='$(CPPFLAGS) $(LTOFLAGS) -DFOR_TOURNAMENT' LDFLAGS='$(LDFLAGS) $(LTOFLAGS)' $(TARGET)
 
 #　とりあえずPGOはAVX2とSSE4.2専用
