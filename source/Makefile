@@ -1,4 +1,3 @@
-
 # === ビルドターゲット (build target) ===
 
 # normal     : 通常使用版(配布用の実行ファイルはこちら)
@@ -66,12 +65,13 @@ YO_CLUSTER = OFF
 # macOSの場合、
 # 1. IntelMacでSSE4.2までしか対応していないなら、APPLESSE42 を指定。AVX2に対応しているなら APPLEAVX2を指定する。
 # 2. M1以降のCPUであれば、APPLEM1を指定する。(M2でもM3でもAPPLEM1を指定する。)
+# 3. M4の場合は、APPLEM4MAXを指定する。
 
 # --- Intel/AMD系 (x86/x64 Platform)
 #TARGET_CPU = AVX512VNNI
 #TARGET_CPU = AVX512
 #TARGET_CPU = AVXVNNI
-TARGET_CPU = AVX2
+#TARGET_CPU = AVX2
 #TARGET_CPU = SSE42
 #TARGET_CPU = SSE41
 #TARGET_CPU = SSSE3
@@ -90,6 +90,8 @@ TARGET_CPU = AVX2
 #TARGET_CPU = APPLESSE42
 # -- macOS for M1/M2/M3
 #TARGET_CPU = APPLEM1
+# -- macOS for M4
+TARGET_CPU = APPLEM4MAX
 
 
 # デバッガーを使用するか (debugger)
@@ -635,6 +637,12 @@ else ifeq ($(TARGET_CPU),APPLESSE42)
 	CPPFLAGS += -DIS_64BIT -DUSE_SSE42 -target x86_64-apple-macos11
 else ifeq ($(TARGET_CPU),APPLEM1)
 	CPPFLAGS += -DIS_64BIT -DUSE_NEON -target arm64-apple-macos11
+else ifeq ($(TARGET_CPU),APPLEM4MAX)
+	# Apple M4 MAX 向け最適化設定 - より互換性の高い設定に変更
+	CPPFLAGS += -DIS_64BIT -DUSE_NEON -target arm64-apple-macos14
+	# 高度な最適化は維持しつつ、互換性を考慮した設定
+	CPPFLAGS += -mtune=native -ffast-math -funroll-loops
+	# -march=armv9.2-a は互換性のために削除、-O3 は既に設定済み
 else ifeq ($(TARGET_CPU),WASM)
 
 else ifeq ($(TARGET_CPU),OTHER)
