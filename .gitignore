@@ -248,3 +248,7 @@ FakesAssemblies/
 GeneratedArtifacts/
 _Pvt_Extensions/
 ModelManifest.xml
+
+# 自分用設定
+.DS_Store
+source/YaneuraOu-by-gcc-*
