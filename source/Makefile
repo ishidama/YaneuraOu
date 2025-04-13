@@ -641,8 +641,7 @@ else ifeq ($(TARGET_CPU),APPLEM4MAX)
 	# Apple M4 MAX 向け最適化設定 - より互換性の高い設定に変更
 	CPPFLAGS += -DIS_64BIT -DUSE_NEON -target arm64-apple-macos14 
 	# 高度な最適化は維持しつつ、互換性を考慮した設定
-	CPPFLAGS += -O3 -mcpu=apple-m4 -funroll-loops -ffast-math -fvectorize -flto
-	# -march=armv9.2-a は互換性のために削除、-O3 は既に設定済み
+	CPPFLAGS += -mcpu=apple-m4
 else ifeq ($(TARGET_CPU),WASM)
 
 else ifeq ($(TARGET_CPU),OTHER)
