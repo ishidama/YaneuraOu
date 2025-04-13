@@ -254,7 +254,11 @@ endif
 # リンク時最適化。
 # CPPFLAGSとLDFLAGSの両方で-fltoを指定する必要がある。
 # cf. https://gcc.gnu.org/onlinedocs/gcc-6.3.0/gcc/Optimize-Options.html#Optimize-Options
-LTOFLAGS = -flto
+ifeq ($(TARGET_CPU),APPLEM4MAX)
+    LTOFLAGS = -flto=thin
+else
+    LTOFLAGS = -flto
+endif
 
 # wstringを使うためにこのシンボル定義が必要。
 CPPFLAGS  += -DUNICODE
@@ -638,10 +642,24 @@ else ifeq ($(TARGET_CPU),APPLESSE42)
 else ifeq ($(TARGET_CPU),APPLEM1)
 	CPPFLAGS += -DIS_64BIT -DUSE_NEON -target arm64-apple-macos11
 else ifeq ($(TARGET_CPU),APPLEM4MAX)
-	# Apple M4 MAX 向け最適化設定 - より互換性の高い設定に変更
-	CPPFLAGS += -DIS_64BIT -DUSE_NEON -target arm64-apple-macos14 
-	# 高度な最適化は維持しつつ、互換性を考慮した設定
-	CPPFLAGS += -mcpu=apple-m4
+    # Apple M4 MAX向け基本設定
+    CPPFLAGS += -DIS_64BIT -DUSE_NEON=8 -DUSE_NEON_DOTPROD
+    
+    # M4向けCPU最適化
+    CPPFLAGS += -mcpu=apple-m4 -mtune=apple-m4
+    
+    # 高度なARMv8.6+命令セット最適化
+    CPPFLAGS += -march=armv8.6-a+fp16+simd+crc+crypto+dotprod+sha3
+    
+    # 浮動小数点と並列処理の最適化
+    CPPFLAGS += -O3 -ffast-math -ffp-contract=fast -fno-math-errno
+    CPPFLAGS += -fvectorize -funroll-loops
+    
+    # macOS 14をターゲット
+    CPPFLAGS += -target arm64-apple-macos14
+
+    # 追加の最適化（必要に応じて）
+    # CPPFLAGS += -fstrict-aliasing -fomit-frame-pointer
 else ifeq ($(TARGET_CPU),WASM)
 
 else ifeq ($(TARGET_CPU),OTHER)
